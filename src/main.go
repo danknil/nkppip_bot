@@ -10,12 +10,19 @@ import (
 )
 
 func main() {
-	ctx, cancel = signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
 	opts := []bot.Option{
 		bot.WithDefaultHandler(handler),
 	}
+
+	b, err := bot.New(os.Getenv("BOT_TOKEN"), opts...)
+	if err != nil {
+		panic(err)
+	}
+
+	b.Start(ctx)
 }
 
 func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
