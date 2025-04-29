@@ -9,11 +9,12 @@ COPY src .
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o main
 
-FROM scratch
-WORKDIR /app
-
-# Copy binary only
-COPY --from=builder /app/main .
-
-# Start binary
 ENTRYPOINT ["./main"]
+
+# FROM scratch
+# WORKDIR /app
+#
+# # Copy binary only
+# COPY --from=builder /app/main .
+#
+# # Start binary
