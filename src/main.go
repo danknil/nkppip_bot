@@ -28,6 +28,7 @@ func main() {
 
 	var handler slog.Handler = slog.NewTextHandler(os.Stdout, log_opts)
 	if appEnv == "production" {
+		log_opts.Level = slog.LevelInfo
 		handler = slog.NewJSONHandler(os.Stdout, log_opts)
 	}
 
@@ -40,6 +41,8 @@ func main() {
 	opts := []bot.Option{
 		bot.WithMessageTextHandler("/start", bot.MatchTypeExact, startHandler),
 		bot.WithCallbackQueryDataHandler("category_", bot.MatchTypePrefix, categoryHandler),
+		bot.WithCallbackQueryDataHandler("document_", bot.MatchTypePrefix, documentHandler),
+		bot.WithCallbackQueryDataHandler("schedule_", bot.MatchTypePrefix, scheduleHandler),
 	}
 
 	b, err := bot.New(botToken, opts...)
