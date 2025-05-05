@@ -35,8 +35,7 @@ func getDocuments(path string) []Document {
 }
 
 func documentHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	slog.Info(fmt.Sprintf("Open schedule handler: %s", update.CallbackQuery.Data))
-
+	slog.Debug(fmt.Sprintf("Opened document handler: %s", update.CallbackQuery.Data))
 }
 
 func buildDocumentKeyboard() models.ReplyMarkup {
