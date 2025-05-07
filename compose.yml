@@ -8,4 +8,6 @@ services:
     env_file:
       - path: .env
         required: true
+    volumes:
+      - ./docs:/app/docs:Z
 
