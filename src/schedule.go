@@ -29,19 +29,17 @@ type Lesson struct {
 	Teacher  string
 }
 
-func scheduleHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	slog.Debug(fmt.Sprintf("Opened schedule handler: %s", update.CallbackQuery.Data))
-
+func getSchedule(schedulePath string) []Group {
 	// TODO: read from correct file
 	body, err := os.ReadFile("")
 	if err != nil {
 		slog.Error("Не удалось прочитать расписание")
-		return
+		return []Group{}
 	}
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
 		slog.Error("Не удалось получить документ расписания из файла")
-		return
+		return []Group{}
 	}
 
 	var groups []Group
@@ -88,6 +86,11 @@ func scheduleHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 				})
 		}
 	})
+	return groups
+}
+
+func scheduleHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	slog.Debug(fmt.Sprintf("Opened schedule handler: %s", update.CallbackQuery.Data))
 }
 
 func buildScheduleKeyboard() models.ReplyMarkup {
