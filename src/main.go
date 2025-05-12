@@ -47,11 +47,11 @@ func main() {
 
 	b, err := bot.New(botToken, opts...)
 	if err != nil {
-		slog.Error("Error while creating bot instance")
+		slog.Error("Ошибка при создании объекта бота")
 		panic(err)
 	}
 
-	slog.Info("Bot successfully started")
+	slog.Info("Бот успешно запущен")
 
 	b.Start(ctx)
 }
@@ -80,24 +80,9 @@ func categoryHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	switch update.CallbackQuery.Data {
 	case "category_schedule":
-		replyMarkup = &models.InlineKeyboardMarkup{
-			InlineKeyboard: [][]models.InlineKeyboardButton{
-				{
-					{Text: "test1", CallbackData: "btn_opt1"},
-					{Text: "test2", CallbackData: "btn_opt2"},
-					{Text: "test3", CallbackData: "btn_opt3"},
-				},
-			},
-		}
-	case "category_documents":
-		replyMarkup = &models.InlineKeyboardMarkup{
-			InlineKeyboard: [][]models.InlineKeyboardButton{
-				{
-					{Text: "test1", CallbackData: "btn_opt1"},
-					{Text: "test2", CallbackData: "btn_opt2"},
-				},
-			},
-		}
+		replyMarkup = buildScheduleKeyboard()
+	case "category_document":
+		replyMarkup = buildDocumentKeyboard()
 	default:
 		replyMarkup = buildCategoryKeyboard()
 	}
@@ -114,7 +99,7 @@ func buildCategoryKeyboard() models.ReplyMarkup {
 		InlineKeyboard: [][]models.InlineKeyboardButton{
 			{
 				{Text: "Расписание", CallbackData: "category_schedule"},
-				{Text: "Документы", CallbackData: "category_documents"},
+				{Text: "Документы", CallbackData: "category_document"},
 			},
 		},
 	}
