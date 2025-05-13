@@ -23,6 +23,9 @@ type Document struct {
 	Path string `yaml:"path"`
 }
 
+// всегда статично внутри докер контейнера
+const DocumentPath = "./documents"
+
 func getDocuments(path string) []Document {
 	var doclist []Document
 
@@ -57,7 +60,7 @@ func documentHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	var doc Document
 
 	doc_id := update.CallbackQuery.Data
-	docs := getDocuments("./docs/list.yml")
+	docs := getDocuments(fmt.Sprintf("%s/list.yml", DocumentPath))
 
 	for i, pdoc := range docs {
 		pdoc_id := fmt.Sprintf("document_%s", pdoc.Id)
@@ -69,7 +72,7 @@ func documentHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		}
 	}
 
-	fileData, err := os.ReadFile(fmt.Sprintf("./docs/%s", doc.Path))
+	fileData, err := os.ReadFile(fmt.Sprintf("%s/%s", &DocumentPath, doc.Path))
 	if err != nil {
 		slog.Error("Не удалось прочитать документ")
 		return
