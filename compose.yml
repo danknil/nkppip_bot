@@ -9,5 +9,6 @@ services:
       - path: .env
         required: true
     volumes:
-      - ./docs:/app/docs:Z
+      - ./docs:/app/documents:Z
+      - ./sched:/app/schedule
 
