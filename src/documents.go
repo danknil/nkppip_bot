@@ -72,14 +72,14 @@ func documentHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		}
 	}
 
-	fileData, err := os.ReadFile(fmt.Sprintf("%s/%s", &DocumentPath, doc.Path))
+	fileData, err := os.ReadFile(fmt.Sprintf("%s/%s", DocumentPath, doc.Path))
 	if err != nil {
 		slog.Error("Не удалось прочитать документ")
 		return
 	}
 
 	filename := filepath.Base(doc.Path)
-	slog.Info(fmt.Sprintf("Отправлен документ: %s", filename)
+	slog.Info(fmt.Sprintf("Отправлен документ: %s", filename))
 	b.SendDocument(ctx, &bot.SendDocumentParams{
 		ChatID: update.CallbackQuery.Message.Message.Chat.ID,
 		Document: &models.InputFileUpload{
