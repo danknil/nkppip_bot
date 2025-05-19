@@ -1,5 +1,6 @@
 services:
   app:
+    restart: always
     build:
       context: .
       dockerfile: Dockerfile
@@ -9,6 +10,5 @@ services:
       - path: .env
         required: true
     volumes:
-      - ./docs:/app/documents:Z
-      - ./sched:/app/schedule
-
+      - ./docs:/app/documents:ro
+      - ./sched:/app/schedule:ro
