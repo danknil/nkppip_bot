@@ -7,7 +7,8 @@ import (
 	"log/slog"
 	"maps"
 	"math/rand"
-	"os" "slices"
+	"os"
+	"slices"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -51,7 +52,7 @@ func getSchedule(schedulePath string) map[string]Group {
 		return map[string]Group{}
 	}
 
-	var groups map[string]Group
+	groups := make(map[string]Group)
 
 	doc.Find("table.inf").First().Find("a.z0").Each(func(i int, sel *goquery.Selection) {
 		groupRef, exists := sel.Attr("href")
@@ -71,77 +72,50 @@ func getSchedule(schedulePath string) map[string]Group {
 				return
 			}
 
-			var currDay string
-			var lessons []Lesson
 			var days []Day
-
-			var Index string
-			var Time string
-			var Name string
-			var Teacher string
-			var Cabinet string
-
+			var lessons []Lesson
 			doc.
 				Find("table.inf").
 				First().
-				Find("td.nul,td.hd0[colspan=4],td.hd,a.z1,a.z2,a.z3").
+				Find("TD.hd[rowspan='6']").
 				Each(func(i int, s *goquery.Selection) {
-					if s.HasClass("hd") {
-						// День недели
-						attr, exists := s.Attr("rowspan")
-						if exists && attr == "6" {
-							currDay = s.Text()
-							slog.Debug(fmt.Sprintf("Текущий день: %s", currDay))
-							return
-						}
-						// Номер пары
-						if strings.Contains(s.Text(), "Пара") {
-							lessons = append(lessons, Lesson{
-								Index:   Index,
-								Time:    Time,
-								Name:    Name,
-								Teacher: Teacher,
-								Cabinet: Cabinet,
+					day := s.Text()
+
+					row := s.Parent()
+					for {
+						lessonHeader := row.ChildrenFiltered("TD.hd:not([rowspan])")
+						lessonInfo := strings.Split(lessonHeader.Text(), ":")
+
+						if len(lessonInfo) > 1 {
+							Index := strings.Split(lessonInfo[0], " ")[0]
+							Time := lessonInfo[1]
+
+							row.ChildrenFiltered("TD.ur").Each(func(i int, s *goquery.Selection) {
+								Name := row.ChildrenFiltered("a.z1").Text()
+								Cabinet := s.ChildrenFiltered("a.z2").Text()
+								Teacher := s.ChildrenFiltered("a.z3").Text()
+								lesson := Lesson{
+									Index:   Index,
+									Time:    Time,
+									Name:    Name,
+									Cabinet: Cabinet,
+									Teacher: Teacher,
+								}
+
+								// slog.Debug(fmt.Sprintf("Lesson: %+v", lesson))
+								lessons = append(lessons, lesson)
 							})
-
-							Index = ""
-							Time = ""
-							Name = ""
-							Teacher = ""
-							Cabinet = ""
-
-							text := strings.Split(s.Text(), "<br>")
-							slog.Debug(fmt.Sprintf("Получена пара: %+v", text))
-							Index = strings.Split(text[0], " ")[0]
-							Time = text[1]
+						}
+						row = row.Next()
+						if _, ex := row.Children().Attr("colspan"); ex || row.Length() == 0 {
+							break
 						}
 					}
-					// Пустая строчка в паре
-					if s.HasClass("nul") {
-						Index = ""
-						Time = ""
-						slog.Debug("Сбрасываем пару, потому что пустое место")
-						return
-					}
-					// Граница между днями
-					if s.HasClass("hd0") {
-						slog.Debug(fmt.Sprintf("Заканчиваем парсинг дня: %s", currDay))
-						days = append(days, Day{
-							DayOfWeek: currDay,
-							Lessons:   lessons,
-						})
-						lessons = []Lesson{}
-						return
-					}
-					if s.HasClass("z1") {
-						Name = s.Text()
-					}
-					if s.HasClass("z2") {
-						Cabinet = s.Text()
-					}
-					if s.HasClass("z3") {
-						Teacher = s.Text()
-					}
+					days = append(days, Day{
+						DayOfWeek: day,
+						Lessons:   lessons,
+					})
+					lessons = []Lesson{}
 				})
 
 			slog.Debug(fmt.Sprintf("Закончен парсинг группы: %s", group))
@@ -150,24 +124,36 @@ func getSchedule(schedulePath string) map[string]Group {
 			for i := range Id {
 				Id[i] = letters[rand.Int63()%int64(len(letters))]
 			}
-			groups[fmt.Sprintf("schedule_%s", string(Id))] = Group{
+
+			slog.Debug(fmt.Sprintf("Сырой Id: %+v", Id))
+
+			stringID := fmt.Sprintf("schedule_%s", string(Id))
+
+			slog.Debug(fmt.Sprintf("ID: %s", string(Id)))
+			groups[stringID] = Group{
 				Name: group,
 				Days: days,
 			}
 		}
 	})
-	slog.Debug("Вывод групп:")
-	for i, group := range groups {
-		slog.Debug(fmt.Sprintf("%s Группа: %+v", i, group))
-	}
 	return groups
 }
 
 func scheduleHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	slog.Debug(fmt.Sprintf("Opened schedule handler: %s", update.CallbackQuery.Data))
+
+	b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: update.CallbackQuery.ID,
+		ShowAlert:       false,
+	})
+
 	if len(Groups) == 0 {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+			ReplyMarkup: buildCategoryKeyboard(),
+		})
 		return
 	}
-	slog.Debug(fmt.Sprintf("Opened schedule handler: %s", update.CallbackQuery.Data))
 
 	if group, ok := Groups[update.CallbackQuery.Data]; ok {
 		slog.Info(fmt.Sprintf("Найдена группа: %s", group.Name))
@@ -175,10 +161,19 @@ func scheduleHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 		messageBuilder := strings.Builder{}
 
 		for _, day := range group.Days {
-			messageBuilder.WriteString("\n**")
-			messageBuilder.WriteString(strings.ToUpper(day.DayOfWeek))
-			messageBuilder.WriteString(":**\n")
+			messageBuilder = strings.Builder{}
+
+			messageBuilder.WriteString("`")
+			messageBuilder.WriteString(day.DayOfWeek)
+			messageBuilder.WriteString("`")
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+				Text:      messageBuilder.String(),
+				ParseMode: models.ParseModeMarkdown,
+			})
+
 			for _, lesson := range day.Lessons {
+				messageBuilder = strings.Builder{}
 				messageBuilder.WriteString("`")
 				messageBuilder.WriteString(lesson.Index)
 				messageBuilder.WriteString(" | ")
@@ -190,13 +185,13 @@ func scheduleHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 				messageBuilder.WriteString(" кабинет. Учитель: ")
 				messageBuilder.WriteString(lesson.Teacher)
 				messageBuilder.WriteString("\n")
+				b.SendMessage(ctx, &bot.SendMessageParams{
+					ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
+					Text:      messageBuilder.String(),
+					ParseMode: models.ParseModeMarkdownV1,
+				})
 			}
 		}
-		b.SendMessage(ctx, &bot.SendMessageParams{
-			Text:      messageBuilder.String(),
-			ChatID:    update.CallbackQuery.Message.Message.Chat.ID,
-			ParseMode: models.ParseModeMarkdown,
-		})
 	}
 }
 
@@ -237,7 +232,7 @@ func buildScheduleKeyboard() models.ReplyMarkup {
 	}})
 
 	kb := &models.InlineKeyboardMarkup{
-		InlineKeyboard: [][]models.InlineKeyboardButton{{}},
+		InlineKeyboard: inlineKeyboard,
 	}
 
 	return kb

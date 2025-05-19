@@ -41,6 +41,7 @@ func main() {
 	opts := []bot.Option{
 		bot.WithMessageTextHandler("/start", bot.MatchTypeExact, startHandler),
 		bot.WithCallbackQueryDataHandler("category_", bot.MatchTypePrefix, categoryHandler),
+		bot.WithCallbackQueryDataHandler("prev_btn", bot.MatchTypeExact, prevHandler),
 		bot.WithCallbackQueryDataHandler("document_", bot.MatchTypePrefix, documentHandler),
 		bot.WithCallbackQueryDataHandler("schedule_", bot.MatchTypePrefix, scheduleHandler),
 	}
@@ -59,6 +60,14 @@ func main() {
 func startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.Message.Chat.ID,
+		Text:        "Выберите опцию",
+		ReplyMarkup: buildCategoryKeyboard(),
+	})
+}
+
+func prevHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
 		Text:        "Выберите опцию",
 		ReplyMarkup: buildCategoryKeyboard(),
 	})
