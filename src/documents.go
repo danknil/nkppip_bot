@@ -93,7 +93,7 @@ func documentHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 func buildDocumentKeyboard() models.ReplyMarkup {
 	var inlineKeyboard [][]models.InlineKeyboardButton
 
-	docs := getDocuments("./docs/list.yml")
+	docs := getDocuments(fmt.Sprintf("%s/list.yml", DocumentPath))
 	rows := 3
 	columns := (len(docs) / rows) + 1
 
